@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Clipboard API Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2rem;
+            background: #f6f8fa;
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            cursor: pointer;
+        }
+
+        .user {
+            width: 50%;
+            padding: 10px;
+            margin: 0.5rem 0;
+            font-size: 16px;
+            border: 2px solid burlywood;
+            background-color: #fff;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 0.5rem 0;
+            font-size: 16px;
+        }
+
+        .log {
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 1rem;
+            margin-top: 1rem;
+            height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Clipboard API Test</h2>
+
+    <!-- User ID display -->
+    <p class="user" id="userId">user-12345</p>
+
+    <!-- Buttons -->
+    <div>
+        <button onclick="copyToClipboard()">Copy User ID (Clipboard API)</button>
+        <button onclick="copyToClipboardFallback()">
+            Copy User ID (Fallback)
+        </button>
+        <button id="toggleBtn" onclick="toggleClipboard()">
+            Disable Clipboard API
+        </button>
+        <button onclick="pasteFromClipboard()">Paste from Clipboard</button>
+    </div>
+
+    <!-- Paste target -->
+    <label for="pasteTarget">Button-triggered paste area:</label>
+    <input readonly id="pasteTarget" />
+
+    <!-- Manual input -->
+    <label for="manualPaste">Manual paste area:</label>
+    <input id="manualPaste" placeholder="Try long-press to paste manually..." />
+
+    <!-- Log output -->
+    <p><strong>Logs:</strong></p>
+    <div class="log" id="logBox"></div>
+
+    <script>
+        const logBox = document.getElementById("logBox");
+
+        function log(msg) {
+            logBox.textContent += msg + "\n";
+        }
+
+        // ✅ Clipboard API copy
+        async function copyToClipboard() {
+            const value = document.getElementById("userId").innerText.trim();
+
+            if (!navigator.clipboard) {
+                log("❌ Clipboard API not available. Copy failed.");
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(value);
+                log(`✅ [Clipboard API] Copied: ${value}`);
+            } catch (err) {
+                log(`❌ [Clipboard API] Copy failed: ${err.message}`);
+            }
+        }
+
+        // 🆘 Fallback copy using execCommand
+        function copyToClipboardFallback() {
+            const value = document.getElementById("userId").innerText.trim();
+
+            // Create hidden textarea
+            const textarea = document.createElement("textarea");
+            textarea.value = value;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+
+            textarea.select();
+            const success = document.execCommand("copy");
+            document.body.removeChild(textarea);
+
+            if (success) {
+                log(`✅ [Fallback] Copied: ${value}`);
+            } else {
+                log("❌ [Fallback] Copy failed.");
+            }
+        }
+
+        // 📥 Clipboard API paste
+        async function pasteFromClipboard() {
+            if (!navigator.clipboard || !window.isSecureContext) {
+                log("❌ Clipboard API not available or insecure context");
+                return;
+            }
+
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById("pasteTarget").value = text;
+                log(`✅ Pasted: ${text}`);
+            } catch (err) {
+                log(`❌ Paste failed: ${err.message}`);
+            }
+        }
+
+        // 🔁 Toggle Clipboard API simulation
+        let clipboardDisabled = false;
+        const originalClipboard = navigator.clipboard;
+        const toggleBtn = document.getElementById("toggleBtn");
+
+        function toggleClipboard() {
+            if (!clipboardDisabled) {
+                // Disable clipboard
+                Object.defineProperty(navigator, "clipboard", {
+                    value: undefined,
+                    configurable: true,
+                });
+                clipboardDisabled = true;
+                toggleBtn.textContent = "Enable Clipboard API";
+                log("🚫 Clipboard API disabled (simulated)");
+            } else {
+                // Restore clipboard
+                Object.defineProperty(navigator, "clipboard", {
+                    value: originalClipboard,
+                    configurable: true,
+                });
+                clipboardDisabled = false;
+                toggleBtn.textContent = "Disable Clipboard API";
+                log("✅ Clipboard API re-enabled");
+            }
+        }
+    </script>
+</body>
+
+</html>
