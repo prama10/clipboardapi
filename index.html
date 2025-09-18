@@ -1,190 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
-    <title>Clipboard API Test</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clipboard + Download API Test</title>
     <style>
-      * {
-        box-sizing: border-box;
-      }
+        body {
+            font-family: sans-serif;
+            margin: 2rem;
+            background: #f6f8fa;
+            color: #333;
+        }
 
-      body {
-        font-family: sans-serif;
-        margin: 1rem;
-        background: #f6f8fa;
-        color: #333;
-      }
+        button {
+            padding: 10px 20px;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            cursor: pointer;
+        }
 
-      h2 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-      }
+        .user {
+            width: 50%;
+            padding: 10px;
+            margin: 0.5rem 0;
+            font-size: 16px;
+            border: 2px solid burlywood;
+            background-color: #fff;
+        }
 
-      .user {
-        width: 100%;
-        padding: 10px;
-        margin: 0.5rem 0;
-        font-size: 1rem;
-        border: 2px solid burlywood;
-        background-color: #fff;
-        word-wrap: break-word;
-      }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 0.5rem 0;
+            font-size: 16px;
+        }
 
-      .button-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 1rem;
-      }
+        .log {
+            border: 1px solid #ccc;
+            background: #fff;
+            padding: 1rem;
+            margin-top: 1rem;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
 
-      button {
-        flex: 1 1 auto;
-        padding: 10px;
-        font-size: 1rem;
-        min-width: 160px;
-        cursor: pointer;
-      }
-
-      label {
-        display: block;
-        margin-top: 1rem;
-        font-weight: bold;
-        font-size: 0.95rem;
-      }
-
-      input {
-        width: 100%;
-        padding: 10px;
-        margin-top: 0.3rem;
-        font-size: 1rem;
-      }
-
-      .log {
-        border: 1px solid #ccc;
-        background: #fff;
-        padding: 1rem;
-        margin-top: 1rem;
-        height: 150px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        font-size: 0.9rem;
-      }
+        label {
+            display: block;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
     </style>
-  </head>
+</head>
 
-  <body>
-    <h2>📋 Clipboard API Test</h2>
+<body>
+    <h2>Clipboard + Download API Test</h2>
 
     <!-- User ID display -->
     <p class="user" id="userId">user-12345</p>
 
-    <!-- Button group -->
-    <div class="button-group">
-      <button onclick="copyToClipboard()">Copy (Clipboard API)</button>
-      <button onclick="copyToClipboardFallback()">Copy (Fallback)</button>
-      <button id="toggleBtn" onclick="toggleClipboard()">
-        Disable Clipboard API
-      </button>
-      <button onclick="pasteFromClipboard()">Paste from Clipboard</button>
+    <!-- Clipboard buttons -->
+    <div>
+        <button onclick="copyToClipboard()">Copy User ID (Clipboard API)</button>
+        <button onclick="copyToClipboardFallback()">Copy User ID (Fallback)</button>
+        <button id="toggleBtn" onclick="toggleClipboard()">Disable Clipboard API</button>
+        <button onclick="pasteFromClipboard()">Paste from Clipboard</button>
     </div>
 
-    <!-- Paste targets -->
+    <!-- Paste target -->
     <label for="pasteTarget">Button-triggered paste area:</label>
     <input readonly id="pasteTarget" />
 
+    <!-- Manual input -->
     <label for="manualPaste">Manual paste area:</label>
     <input id="manualPaste" placeholder="Try long-press to paste manually..." />
 
-    <!-- Logs -->
+    <!-- Download test buttons -->
+    <h3>Download Tests</h3>
+    <div>
+        <button onclick="downloadWithAnchor()">Download via Anchor</button>
+        <button onclick="downloadWithBlob()">Download via Blob + Fetch</button>
+        <button onclick="openInNewTab()">Open in New Tab (PDF Viewer)</button>
+    </div>
+
+    <!-- Log output -->
     <p><strong>Logs:</strong></p>
     <div class="log" id="logBox"></div>
 
     <script>
-      const logBox = document.getElementById("logBox");
+        const logBox = document.getElementById("logBox");
 
-      function log(msg) {
-        logBox.textContent += msg + "\n";
-        logBox.scrollTop = logBox.scrollHeight;
-      }
-
-      // Clipboard API copy
-      async function copyToClipboard() {
-        const value = document.getElementById("userId").textContent.trim();
-
-        if (!navigator.clipboard) {
-          log("❌ Clipboard API not available. Copy failed.");
-          return;
+        function log(msg) {
+            logBox.textContent += msg + "\n";
         }
 
-        try {
-          await navigator.clipboard.writeText(value);
-          log(`✅ [Clipboard API] Copied: ${value}`);
-        } catch (err) {
-          log(`❌ [Clipboard API] Copy failed: ${err.message}`);
-        }
-      }
+        /* ---------------- Clipboard Functions ---------------- */
 
-      // Fallback using execCommand
-      function copyToClipboardFallback() {
-        const value = document.getElementById("userId").textContent.trim();
-        const textarea = document.createElement("textarea");
-        textarea.value = value;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-
-        const success = document.execCommand("copy");
-        document.body.removeChild(textarea);
-
-        if (success) {
-          log(`✅ [Fallback] Copied: ${value}`);
-        } else {
-          log("❌ [Fallback] Copy failed.");
-        }
-      }
-
-      // Clipboard API paste
-      async function pasteFromClipboard() {
-        if (!navigator.clipboard || !window.isSecureContext) {
-          log("❌ Clipboard API not available or insecure context");
-          return;
+        async function copyToClipboard() {
+            const value = document.getElementById("userId").innerText.trim();
+            if (!navigator.clipboard) {
+                log("❌ Clipboard API not available. Copy failed.");
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(value);
+                log(`✅ [Clipboard API] Copied: ${value}`);
+            } catch (err) {
+                log(`❌ [Clipboard API] Copy failed: ${err.message}`);
+            }
         }
 
-        try {
-          const text = await navigator.clipboard.readText();
-          document.getElementById("pasteTarget").value = text;
-          log(`✅ Pasted: ${text}`);
-        } catch (err) {
-          log(`❌ Paste failed: ${err.message}`);
+        function copyToClipboardFallback() {
+            const value = document.getElementById("userId").innerText.trim();
+            const textarea = document.createElement("textarea");
+            textarea.value = value;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            const success = document.execCommand("copy");
+            document.body.removeChild(textarea);
+            if (success) {
+                log(`✅ [Fallback] Copied: ${value}`);
+            } else {
+                log("❌ [Fallback] Copy failed.");
+            }
         }
-      }
 
-      // Toggle Clipboard API on/off (simulate WebView restriction)
-      let clipboardDisabled = false;
-      const originalClipboard = navigator.clipboard;
-      const toggleBtn = document.getElementById("toggleBtn");
-
-      function toggleClipboard() {
-        if (!clipboardDisabled) {
-          Object.defineProperty(navigator, "clipboard", {
-            value: undefined,
-            configurable: true,
-          });
-          clipboardDisabled = true;
-          toggleBtn.textContent = "Enable Clipboard API";
-          log("🚫 Clipboard API disabled (simulated)");
-        } else {
-          Object.defineProperty(navigator, "clipboard", {
-            value: originalClipboard,
-            configurable: true,
-          });
-          clipboardDisabled = false;
-          toggleBtn.textContent = "Disable Clipboard API";
-          log("✅ Clipboard API re-enabled");
+        async function pasteFromClipboard() {
+            if (!navigator.clipboard || !window.isSecureContext) {
+                log("❌ Clipboard API not available or insecure context");
+                return;
+            }
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById("pasteTarget").value = text;
+                log(`✅ Pasted: ${text}`);
+            } catch (err) {
+                log(`❌ Paste failed: ${err.message}`);
+            }
         }
-      }
+
+        let clipboardDisabled = false;
+        const originalClipboard = navigator.clipboard;
+        const toggleBtn = document.getElementById("toggleBtn");
+
+        function toggleClipboard() {
+            if (!clipboardDisabled) {
+                Object.defineProperty(navigator, "clipboard", {
+                    value: undefined,
+                    configurable: true,
+                });
+                clipboardDisabled = true;
+                toggleBtn.textContent = "Enable Clipboard API";
+                log("🚫 Clipboard API disabled (simulated)");
+            } else {
+                Object.defineProperty(navigator, "clipboard", {
+                    value: originalClipboard,
+                    configurable: true,
+                });
+                clipboardDisabled = false;
+                toggleBtn.textContent = "Disable Clipboard API";
+                log("✅ Clipboard API re-enabled");
+            }
+        }
+
+        /* ---------------- Download Functions ---------------- */
+
+        const testFileUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+
+        // 1. Anchor with download attribute
+        function downloadWithAnchor() {
+            const a = document.createElement("a");
+            a.href = testFileUrl;
+            a.download = "test-anchor.pdf";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            log("▶️ Tried download via <a download>");
+        }
+
+        // 2. Blob + Fetch + ObjectURL
+        async function downloadWithBlob() {
+            try {
+                const res = await fetch(testFileUrl);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "test-blob.pdf";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                log("✅ Download triggered via Blob + Fetch");
+            } catch (err) {
+                log(`❌ Blob download failed: ${err.message}`);
+            }
+        }
+
+        // 3. Open in new tab (PDF viewer)
+        function openInNewTab() {
+            window.open(testFileUrl, "_blank");
+            log("▶️ Opened PDF in new tab");
+        }
     </script>
-  </body>
+</body>
+
 </html>
