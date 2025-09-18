@@ -110,7 +110,7 @@
         <button onclick="downloadDirect()">Download (Direct Link)</button>
         <button onclick="downloadBlob()">Download (Blob)</button>
         <button onclick="downloadFetch()">Download (Fetch + Blob)</button>
-        <a href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">Simple achor link</a>
+        <a href="https://clipboardapi.vercel.app/dummy.pdf">Simple achor link</a>
     </div>
 
     <!-- Log output -->
@@ -197,7 +197,7 @@
         function downloadDirect() {
             try {
                 const link = document.createElement("a");
-                link.href = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+                link.href = "https://clipboardapi.vercel.app/dummy.pdf";
                 link.download = "dummy-direct.pdf";
                 document.body.appendChild(link);
                 link.click();
@@ -210,7 +210,7 @@
 
         async function downloadBlob() {
             try {
-                const response = await fetch("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf");
+                const response = await fetch("https://clipboardapi.vercel.app/dummy.pdf");
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
@@ -228,7 +228,7 @@
 
         async function downloadFetch() {
             try {
-                const res = await fetch("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf");
+                const res = await fetch("https://clipboardapi.vercel.app/dummy.pdf");
                 if (!res.ok) throw new Error("Network response was not ok");
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
