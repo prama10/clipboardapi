@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Clipboard + Download API Test</title>
+    <title>Clipboard + Download Test with Inspector</title>
     <style>
         body {
             font-family: sans-serif;
@@ -39,7 +39,7 @@
             background: #fff;
             padding: 1rem;
             margin-top: 1rem;
-            height: 200px;
+            height: 150px;
             overflow-y: auto;
             white-space: pre-wrap;
             font-size: 14px;
@@ -50,16 +50,45 @@
             margin-top: 1rem;
             font-weight: bold;
         }
+
+        /* Inspector styles */
+        #inspectorPanel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            padding: 5px;
+            display: none;
+            z-index: 9999;
+        }
+
+        #inspectorToggle {
+            position: fixed;
+            bottom: 210px;
+            right: 10px;
+            z-index: 10000;
+            padding: 6px 10px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+        }
     </style>
 </head>
 
 <body>
-    <h2>Clipboard + Download API Test</h2>
+    <h2>Clipboard + Download Test</h2>
 
     <!-- User ID display -->
     <p class="user" id="userId">user-12345</p>
 
-    <!-- Clipboard buttons -->
+    <!-- Buttons -->
     <div>
         <button onclick="copyToClipboard()">Copy User ID (Clipboard API)</button>
         <button onclick="copyToClipboardFallback()">Copy User ID (Fallback)</button>
@@ -75,27 +104,31 @@
     <label for="manualPaste">Manual paste area:</label>
     <input id="manualPaste" placeholder="Try long-press to paste manually..." />
 
-    <!-- Download test buttons -->
+    <!-- Download test -->
     <h3>Download Tests</h3>
     <div>
-        <button onclick="downloadWithAnchor()">Download via Anchor</button>
-        <button onclick="downloadWithBlob()">Download via Blob + Fetch</button>
-        <button onclick="openInNewTab()">Open in New Tab (PDF Viewer)</button>
+        <button onclick="downloadDirect()">Download (Direct Link)</button>
+        <button onclick="downloadBlob()">Download (Blob)</button>
+        <button onclick="downloadFetch()">Download (Fetch + Blob)</button>
     </div>
 
     <!-- Log output -->
     <p><strong>Logs:</strong></p>
     <div class="log" id="logBox"></div>
 
+    <!-- Inspector -->
+    <button id="inspectorToggle">🔍 Inspector</button>
+    <div id="inspectorPanel"></div>
+
     <script>
         const logBox = document.getElementById("logBox");
 
         function log(msg) {
+            console.log(msg); // also goes to inspector
             logBox.textContent += msg + "\n";
         }
 
-        /* ---------------- Clipboard Functions ---------------- */
-
+        /* ---------------- Clipboard API ---------------- */
         async function copyToClipboard() {
             const value = document.getElementById("userId").innerText.trim();
             if (!navigator.clipboard) {
@@ -147,62 +180,127 @@
 
         function toggleClipboard() {
             if (!clipboardDisabled) {
-                Object.defineProperty(navigator, "clipboard", {
-                    value: undefined,
-                    configurable: true,
-                });
+                Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
                 clipboardDisabled = true;
                 toggleBtn.textContent = "Enable Clipboard API";
                 log("🚫 Clipboard API disabled (simulated)");
             } else {
-                Object.defineProperty(navigator, "clipboard", {
-                    value: originalClipboard,
-                    configurable: true,
-                });
+                Object.defineProperty(navigator, "clipboard", { value: originalClipboard, configurable: true });
                 clipboardDisabled = false;
                 toggleBtn.textContent = "Disable Clipboard API";
                 log("✅ Clipboard API re-enabled");
             }
         }
 
-        /* ---------------- Download Functions ---------------- */
-
-        const testFileUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-
-        // 1. Anchor with download attribute
-        function downloadWithAnchor() {
-            const a = document.createElement("a");
-            a.href = testFileUrl;
-            a.download = "test-anchor.pdf";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            log("▶️ Tried download via <a download>");
+        /* ---------------- Download Tests ---------------- */
+        function downloadDirect() {
+            try {
+                const link = document.createElement("a");
+                link.href = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+                link.download = "dummy-direct.pdf";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                log("✅ Direct download triggered");
+            } catch (err) {
+                log(`❌ Direct download failed: ${err.message}`);
+            }
         }
 
-        // 2. Blob + Fetch + ObjectURL
-        async function downloadWithBlob() {
+        async function downloadBlob() {
             try {
-                const res = await fetch(testFileUrl);
-                const blob = await res.blob();
+                const response = await fetch("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf");
+                const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "test-blob.pdf";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "dummy-blob.pdf";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
                 URL.revokeObjectURL(url);
-                log("✅ Download triggered via Blob + Fetch");
+                log("✅ Blob download triggered");
             } catch (err) {
                 log(`❌ Blob download failed: ${err.message}`);
             }
         }
 
-        // 3. Open in new tab (PDF viewer)
-        function openInNewTab() {
-            window.open(testFileUrl, "_blank");
-            log("▶️ Opened PDF in new tab");
+        async function downloadFetch() {
+            try {
+                const res = await fetch("https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf");
+                if (!res.ok) throw new Error("Network response was not ok");
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = "dummy-fetch.pdf";
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                log("✅ Fetch+Blob download triggered");
+            } catch (err) {
+                log(`❌ Fetch+Blob download failed: ${err.message}`);
+            }
+        }
+
+        /* ---------------- Inspector ---------------- */
+        const panel = document.getElementById("inspectorPanel");
+        const toggleInspectorBtn = document.getElementById("inspectorToggle");
+
+        function logToPanel(msg) {
+            panel.innerText += msg + "\n";
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        let inspectorActive = false;
+        let origConsole = {};
+        let origFetch = window.fetch;
+
+        toggleInspectorBtn.onclick = () => {
+            inspectorActive = !inspectorActive;
+            panel.style.display = inspectorActive ? "block" : "none";
+            toggleInspectorBtn.textContent = inspectorActive ? "🛑 Close Inspector" : "🔍 Inspector";
+            if (inspectorActive) enableInspector();
+            else disableInspector();
+        };
+
+        function enableInspector() {
+            ["log", "warn", "error"].forEach(type => {
+                origConsole[type] = console[type];
+                console[type] = function (...args) {
+                    origConsole[type].apply(console, args);
+                    logToPanel(`[console.${type}] ${args.map(a => JSON.stringify(a)).join(" ")}`);
+                };
+            });
+            window.onerror = (msg, url, line, col, error) => {
+                logToPanel(`❌ [onerror] ${msg} @ ${line}:${col}`);
+                if (error && error.stack) logToPanel(error.stack);
+            };
+            window.addEventListener("unhandledrejection", e => {
+                logToPanel(`❌ [unhandledrejection] ${e.reason}`);
+            });
+            window.fetch = async (...args) => {
+                logToPanel(`🌐 [fetch] ${args[0]}`);
+                const start = Date.now();
+                try {
+                    const res = await origFetch(...args);
+                    logToPanel(`✅ [fetch] ${res.status} in ${Date.now() - start}ms`);
+                    return res;
+                } catch (err) {
+                    logToPanel(`❌ [fetch] Failed: ${err.message}`);
+                    throw err;
+                }
+            };
+            logToPanel("🕵️ Inspector enabled");
+        }
+
+        function disableInspector() {
+            ["log", "warn", "error"].forEach(type => {
+                if (origConsole[type]) console[type] = origConsole[type];
+            });
+            window.fetch = origFetch;
+            logToPanel("🛑 Inspector disabled");
         }
     </script>
 </body>
